@@ -500,7 +500,6 @@ hypo_get_relation_info_hook(PlannerInfo *root,
 							bool inhparent,
 							RelOptInfo *rel)
 {
-	if (isExplain && hypo_is_enabled)
 	{
 		Relation	relation;
 
@@ -515,18 +514,21 @@ hypo_get_relation_info_hook(PlannerInfo *root,
 		{
 			ListCell   *lc;
 
-			foreach(lc, hypoIndexes)
+			if (isExplain && hypo_is_enabled)
 			{
-				hypoIndex  *entry = (hypoIndex *) lfirst(lc);
-
-				if (hypo_index_match_table(entry, RelationGetRelid(relation)))
+				foreach(lc, hypoIndexes)
 				{
-					/*
-					 * hypothetical index found, add it to the relation's
-					 * indextlist
-					 */
-					hypo_injectHypotheticalIndex(root, relationObjectId,
-												 inhparent, rel, relation, entry);
+					hypoIndex  *entry = (hypoIndex *) lfirst(lc);
+
+					if (hypo_index_match_table(entry, RelationGetRelid(relation)))
+					{
+						/*
+						 * hypothetical index found, add it to the relation's
+						 * indextlist
+						 */
+						hypo_injectHypotheticalIndex(root, relationObjectId,
+													 inhparent, rel, relation, entry);
+					}
 				}
 			}
 
