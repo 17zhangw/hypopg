@@ -90,9 +90,6 @@ static void
 							  );
 static ProcessUtility_hook_type prev_utility_hook = NULL;
 
-static void hypo_executorEnd_hook(QueryDesc *queryDesc);
-static ExecutorEnd_hook_type prev_ExecutorEnd_hook = NULL;
-
 
 static Oid hypo_get_min_fake_oid(void);
 static void hypo_get_relation_info_hook(PlannerInfo *root,
@@ -110,9 +107,6 @@ _PG_init(void)
 	/* Install hooks */
 	prev_utility_hook = ProcessUtility_hook;
 	ProcessUtility_hook = hypo_utility_hook;
-
-	prev_ExecutorEnd_hook = ExecutorEnd_hook;
-	ExecutorEnd_hook = hypo_executorEnd_hook;
 
 	prev_get_relation_info_hook = get_relation_info_hook;
 	get_relation_info_hook = hypo_get_relation_info_hook;
@@ -312,6 +306,9 @@ hypo_utility_hook(
 #endif
 									   );
 
+	PG_TRY();
+	{
+
 	if (prev_utility_hook)
 		prev_utility_hook(
 #if PG_VERSION_NUM >= 100000
@@ -368,6 +365,12 @@ hypo_utility_hook(
 						  qc
 #endif
 						  );
+	};
+	PG_FINALLY();
+	{
+		isExplain = false;
+	};
+	PG_END_TRY();
 
 }
 
@@ -437,18 +440,6 @@ hypo_is_simple_explain(Node *parsetree)
 	return false;
 }
 
-
-/* Reset the isExplain flag after each query */
-static void
-hypo_executorEnd_hook(QueryDesc *queryDesc)
-{
-	isExplain = false;
-
-	if (prev_ExecutorEnd_hook)
-		prev_ExecutorEnd_hook(queryDesc);
-	else
-		standard_ExecutorEnd(queryDesc);
-}
 
 /*
  * Return the minmum usable oid in the FirstBootstrapObjectId -
